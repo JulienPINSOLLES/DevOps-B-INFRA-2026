@@ -6,37 +6,42 @@ avec --rm ).
 Travail à faire :
 1.1 Téléchargez l'image nginx:alpine depuis Docker Hub sans lancer de conteneur.
 
-
+docker pull nginx:alpine
 
 1.2 Lancez un conteneur nginx:alpine nommé mon-nginx en arrière-plan, en exposant
 le port 8080 de votre machine sur le port 80 du conteneur.
 
-
+docker run -d --name mon-nginx -p 8080:80 nginx:alpine
 
 1.3 Vérifiez que le conteneur tourne. Quelle commande permet de lister uniquement les
 conteneurs en cours d'exécution ?
 
-
+docker ps
 
 1.4 Ouvrez http://localhost:8080 dans votre navigateur (ou avec curl ). Que voyezvous
 ?
+
+Page de bienvenue NGINX
+
 1.5 Affichez les logs du conteneur mon-nginx .
 
-
+docker logs mon-nginx
 
 1.6 Arrêtez le conteneur mon-nginx sans le supprimer. Puis listez tous les conteneurs (y
 compris arrêtés). Quelle est la différence avec la commande de la question 1.3 ?
 
+docker stop mon-nginx
 
+docker ps -a (Le -a permet de voir tous les conteneurs, même ceux arrêtés)
 
 1.7 Supprimez le conteneur mon-nginx . Vérifiez qu'il n'existe plus.
-Exercices Docker 1
 
-
+docker rm mon-nginx
 
 1.8 Quelle commande aurait permis de lancer le conteneur de façon à ce qu'il soit
 automatiquement supprimé à l'arrêt ?
 
+docker run -d --rm --name mon-nginx -p 8080:80 nginx:alpine
 
 Exercice 2 — Construire sa première image avec un Dockerfile
 Objectif : Écrire un Dockerfile, construire une image, comprendre les layers.
@@ -51,37 +56,55 @@ exercice-2/
 2.1 Écrivez index.html avec le contenu HTML minimal suivant (titre : "Ma première
 image Docker" , un <h1> avec votre prénom).
 
+Fait un html qui contient : 
 
+<h1>Bonjour, c'est Julien !</h1>
 
 2.2 Écrivez un Dockerfile qui :
 - Part de l'image nginx:alpine
 - Copie index.html dans /usr/share/nginx/html/index.html
 - Expose le port 80
 
+notepad Dockerfile
 
+FROM nginx:alpine
+COPY index.html /usr/share/nginx/html/index.html
+EXPOSE 80
+
+ren Dockerfile.txt Dockerfile
 
 2.3 Construisez l'image avec le tag mon-site:v1 .
 
-
+docker build -t mon-site:v1 .
 
 2.4 Lancez un conteneur basé sur cette image, en exposant le port 9090 → 80 , avec --
 rm . Vérifiez dans le navigateur.
 
-
+docker run -d -p 9090:80 --rm mon-site:v1
 
 2.5 Listez les images locales. Quelle est la taille de mon-site:v1 ? Comparez avec
 nginx:alpine .
 
+docker images
 
+Globalement la meme taille
 
 2.6 Inspectez les layers de l'image avec docker history mon-site:v1 . Combien de
 layers ont été ajoutés par rapport à l'image de base ?
 
+docker history mon-site:v1
 
+2.7 Modifiez index.html (changez le <h1> ). Reconstruisez l'image avec le tag monsite:v2 . 
+Quelle étape a été rechargée depuis le cache ?
+Quelle étape a été réexécutée ?
 
-2.7 Modifiez index.html (changez le <h1> ). Reconstruisez l'image avec le tag monsite:
-v2 . Quelle étape a été rechargée depuis le cache ? Quelle
+J'ai rebuild docker build -t mon-site:v2 . et re run docker run -d -p 9090:80 --rm mon-site:v2
 
+En aillant changé par h3, la taille du texte est plus petite
+
+2.8 Supprimez l'image mon-site:v1 (sans supprimer v2 ).
+
+Suppresion via Docker desktop
 
 Exercice 3 — Volumes et persistance des données
 Objectif : Comprendre la différence entre bind mount et volume nommé, et pourquoi la
@@ -97,37 +120,55 @@ Travail à faire :
 le fichier /data/test.txt avec le contenu "bonjour" . Quittez ( exit ). Relancez un
 nouveau conteneur alpine . Le fichier existe-t-il ? Expliquez pourquoi.
 
+docker run -d -it --rm alpine sh
 
+De mon coté, en stoppant le container sur Docker Desktop, il se supprime mais le fichier est toujours présent sous C:\DevOps\data
 
 3.2 — Bind mount : Créez un dossier exercice-3/html/ sur votre machine. Placez-y un
 fichier index.html . Lancez un conteneur nginx:alpine en montant ce dossier dans /
 usr/share/nginx/html avec -v . Modifiez index.html sur votre machine (sans
 redémarrer le conteneur) et rafraîchissez le navigateur. Que constatez-vous ?
 
+docker run -d -p 8081:80 -v "%cd%/html:/usr/share/nginx/html" nginx:alpine
 
+Test fait avec succès
+
+JULIENNNNN --> TEST3 OK
 
 3.3 — Volume nommé : Créez un volume Docker nommé mes-donnees .
 
+docker run -it --rm -v mes-donnees:/data alpine sh
 
+mkdir data2
 
 3.4 Lancez un conteneur alpine avec --rm en montant mes-donnees sur /data . Dans
 le conteneur, créez /data/persistant.txt avec le contenu "je survis" . Quittez.
 
+docker run -it --rm -v mes-donnees:/data2 alpine sh
 
+echo "je survis" > /data2/persistant.txt
+
+exit
 
 3.5 Lancez un nouveau conteneur alpine (différent du précédent) avec le même volume
 monté. Le fichier /data/persistant.txt existe-t-il ? Qu'est-ce que cela démontre ?
 
+docker run --rm -v mes-donnees:/data2 alpine cat /data2/persistant.txt
 
+Meme si le 1er conteneur est mort, les données restent dans le volume
 
 3.6 Listez les volumes Docker existants. Où Docker stocke-t-il physiquement ce volume sur
 votre machine ?
 
+docker volume ls
 
+\\wsl.localhost\docker-desktop\var
 
 3.7 Supprimez le volume mes-donnees . Quelle précaution faut-il prendre avant de le
 supprimer ?
 
+docker container prune ne fonctionne pas, je ne comprends pas pourquoi donc remove sur docker desktop
+docker volume rm mes-données
 
 Exercice 4 — Réseaux Docker
 Objectif : Comprendre les réseaux Docker, faire communiquer deux conteneurs par leur
@@ -140,37 +181,52 @@ Travail à faire :
 4.1 Listez les réseaux Docker existants sur votre machine. Quels sont les trois réseaux
 créés par défaut ?
 
+docker network ls
 
+bridge, host et none
 
 4.2 Créez un réseau bridge personnalisé nommé mon-reseau .
 
-
+docker network create mon-reseau
 
 4.3 Lancez un conteneur nginx:alpine nommé serveur-web connecté à mon-reseau ,
 en arrière-plan.
 
-
+docker run -d --name serveur-web --network mon-reseau nginx:alpine
 
 4.4 Lancez un conteneur alpine nommé client connecté à mon-reseau en mode
 interactif. Depuis client , effectuez un wget -qO- http://serveur-web . Que récupérezvous
 ? Pourquoi peut-on utiliser le nom serveur-web plutôt qu'une adresse IP ?
 
+docker run -it --name client --network mon-reseau alpine sh
 
+wget -qO- http://serveur-web
+
+Docker fournit une résolution DNS automatique par le nom du conteneur sur un réseau personnalisé
 
 4.5 Quittez client . Lancez un nouveau conteneur alpine nommé client-externe
 sans le connecter à mon-reseau (réseau par défaut). Essayez de joindre serveur-web
 par son nom. Que se passe-t-il ? Pourquoi ?
 
+docker run -it --name client-externe alpine sh
 
+wget -qO- http://serveur-web
+
+Cela échou car bridge ne gère pas les DNS par défaut
 
 4.6 Quelle commande permet de connecter client-externe à mon-reseau après son
 démarrage ?
 
-
+docker network connect mon-reseau client-externe
 
 4.7 Nettoyez : arrêtez et supprimez tous les conteneurs créés dans cet exercice, puis
 supprimez mon-reseau .
 
+
+docker stop serveur-web client
+docker rm serveur-web client
+
+docker network rm mon-reseau
 
 Exercice 5 — Containeriser un serveur Flask
 Objectif : Containeriser une application Python Flask, gérer les dépendances, configurer
@@ -198,11 +254,11 @@ return {"status": "ok"}, 200
 if __name__ == "__main__":
 app.run(host="0.0.0.0", port=5000)
 
-
+A la mano dans explorer.exe
 
 5.2 Créez requirements.txt avec Flask 3.0.3 comme unique dépendance.
 
-
+A la mano dans explorer.exe
 
 5.3 Écrivez un Dockerfile qui :
 - Part de python:3.12-slim
@@ -212,23 +268,31 @@ copie le reste des sources. Pourquoi cet ordre est-il important pour le cache Do
 - Expose le port 5000
 - Définit la commande de démarrage avec flask run --host=0.0.0.0
 
-
+A la mano dans explorer.exe
 
 5.4 Construisez l'image flask-app:v1 .
 
-
+docker build -t flask-app:v1 .
 
 5.5 Lancez un conteneur en passant la variable d'environnement APP_ENV=production et
 en exposant le port 5000 . Vérifiez / et /health dans le navigateur ou avec curl .
 
+docker run -d -p 5000:5000 -e APP_ENV=production flask-app:v1
 
+Bon affichage sur le web
 
 5.6 Relancez le conteneur sans passer APP_ENV . Quelle valeur s'affiche ? D'où vient-elle ?
 
+docker run -d -p 5000:5000 flask-app:v1
 
+Changement d'affichage par développement
 
 5.7 Quelle est la taille de l'image flask-app:v1 ? Que pourrait-on faire pour la réduire
 davantage (donnez deux pistes) ?
+
+48MB.
+
+Pour réduire, on pourrait prendre une image de base alpine par exemple
 
 
 
