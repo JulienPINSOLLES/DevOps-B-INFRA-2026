@@ -294,7 +294,7 @@ davantage (donnez deux pistes) ?
 
 Pour réduire, on pourrait prendre une image de base alpine par exemple
 
-
+NB : Utilisation de l'IA pour les commandes, traduction des commandes de Linux à CMD
 
 
 
